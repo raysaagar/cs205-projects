@@ -58,33 +58,73 @@ if __name__ == '__main__':
 	# s = ?
 
 	# Initial conditions for s0
-	s0 = np.matrix([0,0,2,15,3.5,4.0]).T
-	a = np.matrix([0,0,0,0,0,(g*dt)]).T
-	
-	A = np.identity(6)
-	A[0][3] = dt
-	A[1][4] = dt
-	A[2][5] = dt
-	temp = 1 - c*dt
-	A[3][3] = temp
-	A[4][4] = temp
-	A[5][5] = temp
-	# Compute the rest of sk using Eq (1)
-	z = np.zeros([6,K])
-	predicted_pos_matrix = np.asmatrix(z)
+#	s0 = np.matrix([0,0,2,15,3.5,4.0]).transpose()
+#	a = np.matrix([0,0,0,0,0,(g*dt)]).transpose()
+	s0 = np.matrix([0,0,2,15,3.5,4.0]).transpose()
+	a = np.matrix([0,0,0,0,0,g*dt]).transpose()
+
+	A = np.asmatrix(np.zeros([6,6]))
+	A[0,0] = 1
+	A[1,1] = 1
+	A[2,2] = 1
+	A[0,3] = dt
+	A[1,4] = dt
+	A[2,5] = dt
+	A[3,3] = 1 - c*dt
+	A[4,4] = 1 - c*dt
+	A[5,5] = 1 - c*dt
+	print A
+
+	predicted_pos_matrix = np.asmatrix(np.zeros([6,K]))
 	predicted_pos_matrix[:,0] = s0
+	print predicted_pos_matrix
+
 	i = 0
-	
-	while i < K-1:
-		predicted_pos_matrix[:,(i+1)] = (A*predicted_pos_matrix[:,i]) + a
+	while i < (K-1):
+		predicted_pos_matrix[:,(i+1)] = (A*predicted_pos_matrix[:,i])+a
 		i = i+1
 
+#	print predicted_pos_matrix
 	predicted_pos_array = np.asarray(predicted_pos_matrix)
+	print predicted_pos_array[0]
 	print predicted_pos_array[1]
 	print predicted_pos_array[2]
+	
+	ax.plot(predicted_pos_array[0],predicted_pos_array[1],predicted_pos_array[2],'-k',label='Blind trajectory')
+#	A = np.identity(6)
+#	A[0][3] = dt
+#	A[1][4] = dt
+#	A[2][5] = dt
+#	temp = 1 - c*dt
+#	A[3][3] = temp
+#	A[4][4] = temp
+#	A[5][5] = temp
+
+#	A = np.matrix([[1, 0, 0, dt, 0, 0],
+#                      [0, 1, 0, 0, dt, 0],
+#                      [0, 0, 1, 0, 0, dt],
+#                      [0, 0, 0, 1 - c * dt, 0, 0],
+#                      [0, 0, 0, 0, 1 - c * dt, 0],
+#                      [0, 0, 0, 0, 0, 1 - c * dt]])	
+	# Compute the rest of sk using Eq (1)
+#	z = np.zeros([6,K])
+#	predicted_pos_matrix = np.asmatrix(z)
+#	predicted_pos_matrix[:,0] = s0
+#	print predicted_pos_matrix[:,0]
+#	i = 0
+	
+#	while i < K-1:
+#		print ((A*predicted_pos_matrix[:,i]) + a)
+#		predicted_pos_matrix[:,(i+1)] = ((A*predicted_pos_matrix[:,i]) + a)
+#		i = i+1
+
+#	predicted_pos_array = np.asarray(predicted_pos_matrix)
+#	print predicted_pos_array[0]
+#	print predicted_pos_array[1]
+#	print predicted_pos_array[2]
 	#ax.plot(x-coords, y-coords, z-coords,
 	#				'-k', label='Blind trajectory')
-	ax.plot(predicted_pos_array[0],predicted_pos_array[1],predicted_pos_array[2],'-k',label='Blind trajectory')
+#	ax.plot(predicted_pos_array[0],predicted_pos_array[1],predicted_pos_array[2],'-k',label='Blind trajectory')
 
 	# Part 4:
 	# Use the Kalman filter for prediction
@@ -111,7 +151,7 @@ if __name__ == '__main__':
 	m_full = np.asmatrix(s_tracker)
 
 	# Compute the rest of sk using Eqs (2), (3), (4), and (5)
-	kalmanmatrix = np.asmatrix(z)
+	kalmanmatrix = np.asmatrix(np.zeros([6,K]))
 	kalmanmatrix[:,0] = s0
 
 	i = 0
