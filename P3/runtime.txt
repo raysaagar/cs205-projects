@@ -1,0 +1,1 @@
+EMR, m1.small, 1 instance: 95.0s

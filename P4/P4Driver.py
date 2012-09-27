@@ -26,6 +26,5 @@ if __name__ == '__main__':
 			f_out.write(line)
 		f_out.close()
 		init_input.close()
+		# reopen out.txt and use that for next iteration
 		init_input = open('out.txt','r')
-
-
