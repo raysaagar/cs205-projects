@@ -1,0 +1,2 @@
+EMR for P2a, 1 instance, m1.small: 63.0s
+EMR for P2b, 1 instance, m1.small: 42.0s
