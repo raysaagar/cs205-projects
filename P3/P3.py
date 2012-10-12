@@ -1,6 +1,7 @@
 from mpi4py import MPI
 import numpy as np
 import time
+import math
 
 def get_size():
   '''The array size to use for P2'''
@@ -25,16 +26,43 @@ def parallel_dot(a, b, comm, p_root=0):
   By default, p_root = process 0.'''
   rank = comm.Get_rank()
   size = comm.Get_size()
-
+  
   # Broadcast the arrays
-  a = comm.bcast(a, root=p_root)
-  b = comm.bcast(b, root=p_root)
+  #a = comm.bcast(a, root=p_root)
+  #b = comm.bcast(b, root=p_root)
+
+  #let's try using a scatter...
+  if rank == 0:
+    # get the block length
+    arr_len = len(a) / size
+    # append the last "block." we don't know how big this is
+    # block might be bigger than arr_len, want to catch all extra items
+    scatter_a = [a[arr_len*(size-1):len(a)]]
+    scatter_b = [b[arr_len*(size-1):len(b)]]
+    
+    for i in xrange(size-1):
+      start = arr_len * i
+      end = arr_len * (i + 1)
+      # append all the other "blocks" for scatter
+      scatter_a.append(a[start:end])
+      scatter_b.append(b[start:end])
+
+  else:
+    # if we are not in the master, do nothing
+    scatter_a, scatter_b = None, None
+
+  # do the scatter
+  a = comm.scatter(scatter_a, root=p_root)
+  b = comm.scatter(scatter_b, root=p_root)
+
+  start = 0
+  end = len(a)
 
   # Size of each process's local dot product
-  n = len(a) / size
+  # n = math.ceil(len(a) / size) + 1
   # Start and end indices of the local dot product
-  start = n * rank
-  end   = n * rank + n
+  # start = n * rank
+  # end   = n * rank + n
 
   # Compute the partial dot product
   local_dot = serial_dot(a[start:end], b[start:end])
@@ -42,7 +70,6 @@ def parallel_dot(a, b, comm, p_root=0):
   # Reduce the partial results to the root process
   result = comm.reduce(local_dot, root=p_root)
   return result
-
 
 if __name__ == '__main__':
   comm = MPI.COMM_WORLD

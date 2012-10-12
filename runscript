@@ -13,11 +13,11 @@
 #$ -q gpu-short.q
 # Needed to execute parallel jobs
 # The number of processes to launch [1-64]
-#$ -pe orte 2
+#$ -pe orte 5
 
 # Import environment and profile
 . /etc/profile
 module load courses/cs205/2012
 
 # Launch the job (Change the python file)
-mpirun -n $NSLOTS python my_python.py
+mpirun -n $NSLOTS python P3/P3.py
