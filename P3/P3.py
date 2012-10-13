@@ -27,7 +27,7 @@ def parallel_dot(a, b, comm, p_root=0):
   rank = comm.Get_rank()
   size = comm.Get_size()
   
-  # Broadcast the arrays
+  # Broadcast the arrays ## NOT WHAT WE WANT TO DO IN THE END!
   #a = comm.bcast(a, root=p_root)
   #b = comm.bcast(b, root=p_root)
 
@@ -58,6 +58,7 @@ def parallel_dot(a, b, comm, p_root=0):
   start = 0
   end = len(a)
 
+  ########## INITIAL FIX #####################
   # Size of each process's local dot product
   # n = math.ceil(len(a) / size) + 1
   # Start and end indices of the local dot product

@@ -26,7 +26,6 @@ class data_transformer:
 def parallel_tomo(Transformer, data, comm, n_phi):
   rank = comm.Get_rank()
   size = comm.Get_size()
-#  data_block = []
   result = 0
 
   if rank == 0:
@@ -38,29 +37,11 @@ def parallel_tomo(Transformer, data, comm, n_phi):
     scatter_array = None
 
   local_array = comm.scatter(scatter_array)
-
-#  if rank == 0:
-#    for i in xrange(1, size):
-#      data_block = data[blocksize*i:blocksize*(i+1),:]
-#      comm.send((data_block, Transformer), dest = i, tag = 15)
-#    data_block = data[0:blocksize,:]
-#  else:
-#    received = comm.recv(source=0, tag=15)
-#    data_block = received[0]
-#    Transformer = received[1]
   blocksize = np.shape(local_array)[0]
-#  print "blocksize!!! %d" % blocksize
   for k in xrange(0,blocksize):
     # Compute the back-projection
     phi = -(rank * blocksize + k) * math.pi / n_phi
     result += Transformer.transform(local_array[k,:], phi)
-
-#  if rank != 0:
-#    comm.send(result,dest=0, tag=15)
-#  else:
-#    for i in xrange(1, size):
-#      received = comm.recv(source=i, tag=15)
-#      result += received
 
   finalres =  comm.reduce(result,MPI.SUM)
 
@@ -73,7 +54,7 @@ if __name__ == '__main__':
   # Metadata
   n_phi  = 2048        # The number of Tomographic projections
   sample_size = 6144   # The number of samples in each projection
-  ImageSize = 512
+  ImageSize = 2048
   # process 0 gets all the data
   if rank == 0:
     # Read the projective data from file
@@ -96,9 +77,9 @@ if __name__ == '__main__':
 
   # Plot the raw data
   if rank==0:
-    plt.figure(1);
-    plt.imshow(result, cmap='bone');
-    plt.draw();
+  #  plt.figure(1);
+  #  plt.imshow(result, cmap='bone');
+  #  plt.draw();
 
 #  for k in xrange(0,n_phi):
     # Compute the back-projection
@@ -113,9 +94,9 @@ if __name__ == '__main__':
 #      plt.draw()
 
   # Plot/Save the final result
-    plt.figure(2)
-    plt.imshow(result, cmap=plt.cm.bone)
-    plt.draw()
-    plt.imsave('TomographicReconstruction4b.png', result, cmap='bone')
+  #  plt.figure(2)
+  #  plt.imshow(result, cmap=plt.cm.bone)
+  #  plt.draw()
+  #  plt.imsave('TomographicReconstruction4b.png', result, cmap='bone')
     print "Time = %f sec" % (p_stop - p_start)
   raw_input("Any key to exit...")

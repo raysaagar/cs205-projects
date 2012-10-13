@@ -20,4 +20,4 @@
 module load courses/cs205/2012
 
 # Launch the job (Change the python file)
-mpirun -n $NSLOTS python P4/P4b.py
+mpirun -n $NSLOTS python P4b.py

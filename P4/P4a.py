@@ -26,28 +26,32 @@ class data_transformer:
 def parallel_tomo(Transformer, data, comm, n_phi):
   rank = comm.Get_rank()
   size = comm.Get_size()
-#  data_block = []
   result = 0
+  # new block size
   blocksize = n_phi / size
 
+  # rank 0 will calculate block chunks and pass them using send
   if rank == 0:
     for i in xrange(1, size):
       data_block = data[blocksize*i:blocksize*(i+1),:]
       comm.send((data_block, Transformer), dest = i, tag = 15)
     data_block = data[0:blocksize,:]
   else:
+    # all processes will receive data and tranformer object
     received = comm.recv(source=0, tag=15)
     data_block = received[0]
     Transformer = received[1]
 
   for k in xrange(0,blocksize):
-    # Compute the back-projection
+    # Compute the back-projection, need an updated phi value
     phi = -(rank * blocksize + k) * math.pi / n_phi
     result += Transformer.transform(data_block[k,:], phi)
 
+  # need to send all data back to rank 0
   if rank != 0:
     comm.send(result,dest=0, tag=15)
   else:
+    # receive all data back rank != 0
     for i in xrange(1, size):
       received = comm.recv(source=i, tag=15)
       result += received
@@ -73,12 +77,14 @@ if __name__ == '__main__':
     # Precompute a data_transformer
     Transformer = data_transformer(sample_size, ImageSize)
   else:
+    # other processes don't get anything until rank 0 sends it
     data = None
     Transformer = None
 
+  # comm barrier to wait for results to be completely calculated
   comm.barrier()
+  # use parallel_tomo to pass data and calculate results
   result = parallel_tomo(Transformer, data, comm, n_phi)
-  print np.shape(result)
   comm.barrier()
 
   # Plot the raw data
@@ -87,21 +93,10 @@ if __name__ == '__main__':
     plt.imshow(result, cmap='bone');
     plt.draw();
 
-#  for k in xrange(0,n_phi):
-    # Compute the back-projection
-#    phi = -k * math.pi / n_phi
-#    result += Transformer.transform(data[k,:], phi)
-
-    # Update a plot every so often to show progress
-#    print k, phi
-#    if k % 50 == 0:
-#      plt.figure(2)
-#      plt.imshow(result, cmap='bone')
-#      plt.draw()
-
   # Plot/Save the final result
     plt.figure(2)
     plt.imshow(result, cmap=plt.cm.bone)
     plt.draw()
     plt.imsave('TomographicReconstruction4a.png', result, cmap='bone')
+  # NOTE: this line throws an error in the end (EOFError).... 
   raw_input("Any key to exit...")
