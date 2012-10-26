@@ -1,0 +1,7 @@
+BENCHMARK
+GPU Time: 0.000285
+Blocksize: 8.000000
+Serial Time: 0.001116
+Hello CUDA test passed with error 0.000000
+
+
