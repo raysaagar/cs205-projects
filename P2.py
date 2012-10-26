@@ -14,6 +14,10 @@ saxpy_kernel_source = \
 __global__ void saxpy_kernel(float* z, float alpha, float* x, float* y, int N)
 {
     // HW3 P2: WRITE ME
+    // get TID
+    int tid = blockIdx.x*blockDim.x + threadIdx.x;
+    if (tid < N) z[tid] = alpha*x[tid] + y[tid];
+
 }
 """
 
@@ -50,13 +54,14 @@ if __name__ == '__main__':
 
   # Run the CUDA kernel with the appropriate inputs
   start_gpu_time.record()
-  saxpy_kernel(z_d, alpha, x_d, y_d, N, block=blocksize, grid=gridsize)
+  for i in xrange(1000):
+    saxpy_kernel(z_d, alpha, x_d, y_d, N, block=blocksize, grid=gridsize)
   end_gpu_time.record()
   end_gpu_time.synchronize()
   gpu_time = start_gpu_time.time_till(end_gpu_time) * 1e-3
 
-  print "GPU Time: %f" % gpu_time
-
+  print "GPU Time: %f" % (gpu_time/1000)
+  print "Blocksize: %f" % blocksize[0]
   # Copy from device to host
   z_gpu = z_d.get()
 

@@ -1,10 +1,11 @@
 import numpy as np
 from Plotter3DCS205 import MeshPlotter3D, MeshPlotter3DParallel
+import time
 
 # Global constants
 xMin, xMax = 0.0, 1.0     # Domain boundaries
 yMin, yMax = 0.0, 1.0     # Domain boundaries
-Nx = 64                   # Numerical grid size
+Nx = 256#64                   # Numerical grid size
 dx = (xMax-xMin)/(Nx-1)   # Grid spacing, Delta x
 Ny, dy = Nx, dx           # Ny = Nx, dy = dx
 dt = 0.4 * dx             # Time step (Magic factor of 0.4)
@@ -62,7 +63,9 @@ if __name__ == '__main__':
 
   # Setup and draw the first frame with the interior points
   [I,J] = np.mgrid[1:Ix,1:Iy]   # The global indices for u[1:Ix,1:Iy]
-  plotter = MeshPlotter3D(I, J, u[1:Ix,1:Iy])
+#  plotter = MeshPlotter3D(I, J, u[1:Ix,1:Iy])
+
+  s_start = time.time()
 
   for k,t in enumerate(np.arange(0,T,dt)):
     # Compute u^{n+1} with the computational stencil
@@ -76,9 +79,15 @@ if __name__ == '__main__':
     set_ghost_cells(u)
 
     # Output and draw Occasionally
-    print "Step: %d  Time: %f" % (k,t)
-    if k % 5 == 0:
-      plotter.draw_now(I, J, u[1:Ix,1:Iy])
+ #   print "Step: %d  Time: %f" % (k,t)
+ #   if k % 5 == 0:
+ #     plotter.draw_now(I, J, u[1:Ix,1:Iy])
+
+  s_stop = time.time()
+  total = s_stop - s_start
+  avgT = total/(T/dt)
+  print "Time: %f" % total
+  print "Time/iteration: %f" % avgT
 
   plotter = MeshPlotter3D(I, J, u[1:Ix,1:Iy])
   plotter.save_now("FinalWave.png")
