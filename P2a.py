@@ -28,7 +28,58 @@ def cuda_compile(source_string, function_name):
   return source_module.get_function(function_name)
 
 
+def bandwidth():
+  n = 11
+  nbytes = np.zeros(n, dtype = np.float64)
+  time = np.zeros(n, dtype = np.float64)
+  Time = np.zeros(n, dtype = np.float64)
+  
+  timecputogpu = []
+  timegputocpu = []
+
+  for b in range(n):
+    nbytes[b] = int(8**b)
+    data = np.random.random(nbytes[b]/8)
+    start_time = cu.Event()
+    end_time = cu.Event()
+
+    start_time.record()
+    data_d = gpu.to_gpu(data)
+    end_time.record()
+    end_time.synchronize()
+
+    timecputogpu.append(start_time.time_till(end_time) * 1e-3)
+    
+    start_time.record()
+    data_gpu = data_d.get()
+    end_time.record()
+    end_time.synchronize()
+
+    timegputocpu.append(start_time.time_till(end_time) * 1e-3)
+
+    print "size = %10.d bytes, transfer time = %f s, %f s" % (nbytes[b], timecputogpu[b],timegputocpu[b])
+
+  Latc2g = (sum(timecputogpu[:4]) / 4.0) * 1e6
+  Latg2c = (sum(timegputocpu[:4]) / 4.0) * 1e6
+
+  Bandc2g = (((nbytes[n-1] - nbytes[n-2]) / (timecputogpu[n-1] - timecputogpu[n-2])) / 1e6)
+  Bandg2c = (((nbytes[n-1] - nbytes[n-2]) / (timegputocpu[n-1] - timegputocpu[n-2])) / 1e6)
+
+  print "CPU TO GPU"
+  print "\n Latency   = %f usec" % Latc2g
+  print " Bandwidth = %f MBytes/sec" % Bandc2g
+
+  print "CPU TO GPU"
+  print "\n Latency   = %f usec" % Latg2c
+  print " Bandwidth = %f MBytes/sec" % Bandg2c
+
+
+
 if __name__ == '__main__':
+  
+  #calculate bandwidth and latency
+  bandwidth()
+
   # Compile the CUDA kernel
   saxpy_kernel = cuda_compile(saxpy_kernel_source,"saxpy_kernel")
 
@@ -41,13 +92,8 @@ if __name__ == '__main__':
   y      = np.float32(np.random.random(N))
 
   # On the host, define the kernel parameters - for PART 1, modify and time these!
-  #blocksize = (8,1,1)     # The number of threads per block (x,y,z)
-  #gridsize  = (32768,1)   # The number of thread blocks     (x,y)
-
-  #most optimized when block and gridsize are the same
-  sz = int(np.sqrt(N))
-  blocksize = (sz, 1,1)
-  gridsize(sz,1,1)
+  blocksize = (8,1,1)     # The number of threads per block (x,y,z)
+  gridsize  = (32768,1)   # The number of thread blocks     (x,y)
 
   # Allocate device memory and copy host to device
   x_d = gpu.to_gpu(x)
