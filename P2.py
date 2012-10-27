@@ -80,6 +80,9 @@ def bandwidth():
 
 if __name__ == '__main__':
 
+  # run bandwidth function to get all bandwidth/latency testing times
+  bandwidth()
+
   # Compile the CUDA kernel
   saxpy_kernel = cuda_compile(saxpy_kernel_source,"saxpy_kernel")
 

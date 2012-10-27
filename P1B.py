@@ -11,6 +11,8 @@ Ny, dy = Nx, dx           # Ny = Nx, dy = dx
 dt = 0.4 * dx             # Time step (Magic factor of 0.4)
 T = 7                     # Time end
 DTDX = (dt*dt) / (dx*dx)  # Precomputed CFL scalar
+
+# number processors in X and Y direction
 Px = 32
 Py = 1
 
