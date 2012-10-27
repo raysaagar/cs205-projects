@@ -5,14 +5,16 @@ from mpi4py import MPI
 # Global constants
 xMin, xMax = 0.0, 1.0     # Domain boundaries
 yMin, yMax = 0.0, 1.0     # Domain boundaries
-Nx = 64                   # Numerical grid size
+Nx = 256                   # Numerical grid size
 dx = (xMax-xMin)/(Nx-1)   # Grid spacing, Delta x
 Ny, dy = Nx, dx           # Ny = Nx, dy = dx
 dt = 0.4 * dx             # Time step (Magic factor of 0.4)
 T = 7                     # Time end
 DTDX = (dt*dt) / (dx*dx)  # Precomputed CFL scalar
-Px = 4
-Py = 2
+
+# number of processes in X and Y directions
+Px = 32
+Py = 1
 
 # Domain
 Gx, Gy = Nx+2, Ny+2     # Numerical grid size with ghost cells
@@ -58,32 +60,49 @@ def set_ghost_cells(u):
   neighboring processes, others will use these boundary conditions.'''
   coords = cart_comm.Get_coords(rank)
 
+  # top row
+
+  # if we are getting a regular row from the top, we use the ghost vals
   if (coords[0] == 0):
     u[0,:] = u[2,:]
   else:
+  # we are trying to use a row that someone else owns
+  # send receive the relevant data so both processes can calculate
     neighbor = cart_comm.Get_cart_rank([coords[0]-1,coords[1]])
     cart_comm.Sendrecv(u[1,:],dest=neighbor,recvbuf=u[0,:], source=neighbor)
 
+  # bottom row
+
+  # use ghost row if getting a reg row from the bottom
   if (coords[0] == (Px-1)):
     u[Lx+1,:] = u[Lx-1,:]
   else:
+  # otherwise transfer the rows so we can keep calculating
     neighbor = cart_comm.Get_cart_rank([coords[0]+1,coords[1]])
     cart_comm.Sendrecv(u[Lx,:],dest=neighbor,recvbuf=u[Lx+1,:],source=neighbor)
   
   #left col
+
+  # use ghost row if we are getting a regular column from left
   if (coords[1] == 0):
     u[:,0] = u[:,2]
   else:
+    # we need to transfer a row, but it is currently in col format
+    # transpose it into a buffer first
     b_in, b_out = np.zeros([1,LGx]), np.zeros([1,LGx])
     b_out[0,:] = np.transpose(u[:,1])
     neighbor = cart_comm.Get_cart_rank([coords[0],coords[1]-1])
     cart_comm.Sendrecv(b_out[0,:],dest=neighbor,recvbuf=b_in[0,:],source=neighbor)
+    # on receive, transpose back into a row
     u[:,0] = np.transpose(b_in[0,:])
   
   #right col
+
+  # use ghost row if we are getting a reg col from right
   if(coords[1] == (Py-1)):
     u[:,Ly+1] = u[:,Ly-1]
   else:
+    # buffer reasoning same as left column
     b_in, b_out = np.zeros([1,LGx]), np.zeros([1,LGx])
     b_out[0,:] = np.transpose(u[:,Ly])
     neighbor = cart_comm.Get_cart_rank([coords[0],coords[1]+1])
@@ -103,17 +122,20 @@ if __name__ == '__main__':
   rank = comm.Get_rank()
   size = comm.Get_size()
 
+  # use cartesian comm to communicate easily
   cart_comm = comm.Create_cart((Px,Py))
   coords = cart_comm.Get_coords(rank)
+  # get process row and col
   row,col = coords[0],coords[1]
 
-  #global values
+  #global values - A thank you to Michael Zochowski for this suggestion.
+  # using global values caused time improvements from 120sec to 5 sec before further optimizations
   global Lx, Ly, LGx, LGy, LIx, LIy
   Lx, Ly = Nx/Px, Ny/Py
   LGx, LGy = Lx+2, Ly+2
   LIx, LIy = Lx+1, Ly+1
 
-  #global index
+  #global index based on new global values
   globx, globy = Lx*row,Ly*col
 
   # Set the initial conditions
@@ -121,9 +143,13 @@ if __name__ == '__main__':
 
   # Setup and draw the first frame with the interior points
 #  [I,J] = np.mgrid[1:Ix,1:Iy]   # The global indices for u[1:Ix,1:Iy]
+
+  # set up local indices 
   [I,J] = np.mgrid[globx:globx+(Nx/Px), globy:globy+(Ny/Py)]
+  # uncomment for image
   #plotter = MeshPlotter3DParallel(I, J, u[1:LIx,1:LIy])
 
+  # timing stuff
   comm.barrier()
   p_start = MPI.Wtime()
 
@@ -138,6 +164,7 @@ if __name__ == '__main__':
     # Set the ghost cells on u
     set_ghost_cells(u)
 
+  # uncomment for outputs and image
     # Output and draw Occasionally
     #if(rank == 0):
     #  print "Step: %d  Time: %f" % (k,t)
@@ -145,13 +172,14 @@ if __name__ == '__main__':
       #plotter.draw_now(I, J, u[1:LIx,1:LIy])
 
   comm.barrier()
+  # calculation for total time and time/iteration
   time = (MPI.Wtime() - p_start)
   avgT = time / (T/dt)
-
+  # only save and print things as rank 0
   if (rank == 0):
     print "Time: %f" % time
     print "Time/iteration: %f" % avgT
-
+  # use this because its easier
   plotter = MeshPlotter3DParallel(I, J, u[1:LIx,1:LIy])
   if(rank == 0):
     plotter.save_now("FinalWaveA.png")

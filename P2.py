@@ -13,9 +13,9 @@ saxpy_kernel_source = \
 """
 __global__ void saxpy_kernel(float* z, float alpha, float* x, float* y, int N)
 {
-    // HW3 P2: WRITE ME
     // get TID
     int tid = blockIdx.x*blockDim.x + threadIdx.x;
+    // do the SAXPY calculation
     if (tid < N) z[tid] = alpha*x[tid] + y[tid];
 
 }
@@ -27,27 +27,72 @@ def cuda_compile(source_string, function_name):
   # Return a handle to the compiled CUDA kernel
   return source_module.get_function(function_name)
 
+def bandwidth():
+  n = 11
+  nbytes = np.zeros(n, dtype = np.float64)
+  time = np.zeros(n, dtype = np.float64)
+  Time = np.zeros(n, dtype = np.float64)
+  
+  timecputogpu = []
+  timegputocpu = []
+
+  # run data for 8^1 to 8^18
+  for b in range(n):
+    # set up data
+    nbytes[b] = int(8**b)
+    data = np.random.random(nbytes[b]/8)
+    start_time = cu.Event()
+    end_time = cu.Event()
+
+    # time the transfer from CPU to GPU
+    start_time.record()
+    data_d = gpu.to_gpu(data)
+    end_time.record()
+    end_time.synchronize()
+
+    timecputogpu.append(start_time.time_till(end_time) * 1e-3)
+    
+    # time the tranfer from GPU to CPU
+    start_time.record()
+    data_gpu = data_d.get()
+    end_time.record()
+    end_time.synchronize()
+
+    timegputocpu.append(start_time.time_till(end_time) * 1e-3)
+
+    print "size = %10.d bytes, transfer time = %f s, %f s" % (nbytes[b], timecputogpu[b],timegputocpu[b])
+  
+  # calculate the latency values for both directions
+  Latc2g = (sum(timecputogpu[:4]) / 4.0) * 1e6
+  Latg2c = (sum(timegputocpu[:4]) / 4.0) * 1e6
+
+  # calculate the bandwidth values for both directions
+  Bandc2g = (((nbytes[n-1] - nbytes[n-2]) / (timecputogpu[n-1] - timecputogpu[n-2])) / 1e6)
+  Bandg2c = (((nbytes[n-1] - nbytes[n-2]) / (timegputocpu[n-1] - timegputocpu[n-2])) / 1e6)
+
+  print "CPU TO GPU"
+  print "\n Latency   = %f usec" % Latc2g
+  print " Bandwidth = %f MBytes/sec" % Bandc2g
+
+  print "CPU TO GPU"
+  print "\n Latency   = %f usec" % Latg2c
+  print " Bandwidth = %f MBytes/sec" % Bandg2c
 
 if __name__ == '__main__':
+
   # Compile the CUDA kernel
   saxpy_kernel = cuda_compile(saxpy_kernel_source,"saxpy_kernel")
 
   # On the host, define the vectors, be careful about the types
   N      = np.int32(2**18)
-  m = 1000
   z      = np.float32(np.zeros(N))
   alpha  = np.float32(100.0)
   x      = np.float32(np.random.random(N))
   y      = np.float32(np.random.random(N))
 
   # On the host, define the kernel parameters - for PART 1, modify and time these!
-  #blocksize = (8,1,1)     # The number of threads per block (x,y,z)
-  #gridsize  = (32768,1)   # The number of thread blocks     (x,y)
-
-  #most optimized when block and gridsize are the same
-  sz = int(np.sqrt(N))
-  blocksize = (sz, 1,1)
-  gridsize(sz,1,1)
+  blocksize = (256,1,1)     # The number of threads per block (x,y,z)
+  gridsize  = (1024,1)   # The number of thread blocks     (x,y)
 
   # Allocate device memory and copy host to device
   x_d = gpu.to_gpu(x)
@@ -60,6 +105,7 @@ if __name__ == '__main__':
 
   # Run the CUDA kernel with the appropriate inputs
   start_gpu_time.record()
+  # run for 1000 times, this is the benchmark
   for i in xrange(1000):
     saxpy_kernel(z_d, alpha, x_d, y_d, N, block=blocksize, grid=gridsize)
   end_gpu_time.record()

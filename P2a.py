@@ -29,7 +29,8 @@ def cuda_compile(source_string, function_name):
 
 
 def bandwidth():
-  n = 11
+#  n = 11
+  n = 1
   nbytes = np.zeros(n, dtype = np.float64)
   time = np.zeros(n, dtype = np.float64)
   Time = np.zeros(n, dtype = np.float64)
@@ -38,7 +39,8 @@ def bandwidth():
   timegputocpu = []
 
   for b in range(n):
-    nbytes[b] = int(8**b)
+    #nbytes[b] = int(8**b)
+    nbytes[b] = int(2**18)
     data = np.random.random(nbytes[b]/8)
     start_time = cu.Event()
     end_time = cu.Event()

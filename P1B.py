@@ -5,14 +5,14 @@ from mpi4py import MPI
 # Global constants
 xMin, xMax = 0.0, 1.0     # Domain boundaries
 yMin, yMax = 0.0, 1.0     # Domain boundaries
-Nx = 64                   # Numerical grid size
+Nx = 256                   # Numerical grid size
 dx = (xMax-xMin)/(Nx-1)   # Grid spacing, Delta x
 Ny, dy = Nx, dx           # Ny = Nx, dy = dx
 dt = 0.4 * dx             # Time step (Magic factor of 0.4)
 T = 7                     # Time end
 DTDX = (dt*dt) / (dx*dx)  # Precomputed CFL scalar
-Px = 4
-Py = 2
+Px = 32
+Py = 1
 
 # Domain
 Gx, Gy = Nx+2, Ny+2     # Numerical grid size with ghost cells
@@ -59,71 +59,73 @@ def set_ghost_cells(u):
   coords = cart_comm.Get_coords(rank)
 
   #top row
+
+  # use ghost row if not sharing
   if (coords[0] == 0):
     u[0,:] = u[2,:]
   else:
+  # need a buffer for Isend/recv
     b_in = np.zeros([1,LGy])
     neighbor = cart_comm.Get_cart_rank([coords[0]-1,coords[1]])
     
-    req = cart_comm.Irecv(b_in[0,:],source=neighbor,tag=0)
-    cart_comm.Isend(u[1,:],dest=neighbor,tag=0)
+    req = cart_comm.Irecv(b_in[0,:],source=neighbor)
+    cart_comm.Isend(u[1,:],dest=neighbor)
 
     status = MPI.Status()
     req.Wait(status)
-    assert status.source == neighbor
-#    assert status.tag == 0
 
     u[0,:] = b_in[0,:]
 
+  # bottom row
+  # use ghost row if not sharing
   if (coords[0] == (Px-1)):
     u[Lx+1,:] = u[Lx-1,:]
   else:
+    # need a buffer!
     b_in = np.zeros([1,LGy])
     neighbor = cart_comm.Get_cart_rank([coords[0]+1,coords[1]])
 
-    req = cart_comm.Irecv(b_in[0,:],source=neighbor,tag=0)
-    cart_comm.Isend(u[Lx,:],dest=neighbor,tag=0)
+    req = cart_comm.Irecv(b_in[0,:],source=neighbor)
+    cart_comm.Isend(u[Lx,:],dest=neighbor)
 
     status = MPI.Status()
     req.Wait(status)
-    assert status.source == neighbor
-#    assert status.tag == 0
 
     u[Lx+1,:] = b_in[0,:]
 
   #left col
+  # use ghost col if not sharing
   if (coords[1] == 0):
     u[:,0] = u[:,2]
   else:
+    # use buffer. need to transpose col to row for sending
     b_in, b_out = np.zeros([1,LGx]), np.zeros([1,LGx])
     b_out[0,:] = np.transpose(u[:,1])
     neighbor = cart_comm.Get_cart_rank([coords[0],coords[1]-1])
     
-    req = cart_comm.Irecv(b_in[0,:], source = neighbor, tag = 1)
-    cart_comm.Isend(b_out[0,:],dest=neighbor, tag=1)
+    req = cart_comm.Irecv(b_in[0,:], source = neighbor)
+    cart_comm.Isend(b_out[0,:],dest=neighbor)
 
     status = MPI.Status()
     req.Wait(status)
-    assert status.source == neighbor
-#    assert status.tag == 1
     
     u[:,0] = np.transpose(b_in[0,:])
   
   #right col
+  # use ghost col if not sharing
   if(coords[1] == (Py-1)):
     u[:,Ly+1] = u[:,Ly-1]
   else:
+    # use buffer, need to transpose like above
     b_in, b_out = np.zeros([1,LGx]), np.zeros([1,LGx])
     b_out[0,:] = np.transpose(u[:,Ly])
     neighbor = cart_comm.Get_cart_rank([coords[0],coords[1]+1])
     
-    req = cart_comm.Irecv(b_in[0,:], source=neighbor, tag=1)
-    cart_comm.Isend(b_out[0,:],dest=neighbor,tag=1)
+    req = cart_comm.Irecv(b_in[0,:], source=neighbor)
+    cart_comm.Isend(b_out[0,:],dest=neighbor)
 
     status = MPI.Status()
     req.Wait(status)
-    assert status.source == neighbor
-#    assert status.tag == 1
     
     u[:,Ly+1] = np.transpose(b_in[0,:])
 
@@ -144,7 +146,8 @@ if __name__ == '__main__':
   coords = cart_comm.Get_coords(rank)
   row,col = coords[0],coords[1]
 
-  #global values
+  #global values - Thanks to Micheal Zochowski for this suggestion
+  # pre-computing reducing computation total time 
   global Lx, Ly, LGx, LGy, LIx, LIy
   Lx, Ly = Nx/Px, Ny/Py
   LGx, LGy = Lx+2, Ly+2
@@ -158,9 +161,12 @@ if __name__ == '__main__':
 
   # Setup and draw the first frame with the interior points
 #  [I,J] = np.mgrid[1:Ix,1:Iy]   # The global indices for u[1:Ix,1:Iy]
+
+  # new local indicies 
   [I,J] = np.mgrid[globx:globx+(Nx/Px), globy:globy+(Ny/Py)]
   #plotter = MeshPlotter3DParallel(I, J, u[1:LIx,1:LIy])
 
+  # timing stuff
   comm.barrier()
   p_start = MPI.Wtime()
 
@@ -181,10 +187,12 @@ if __name__ == '__main__':
     #if k % 5 == 0:
       #plotter.draw_now(I, J, u[1:LIx,1:LIy])
 
+  # calculate total time and time/iteration
   comm.barrier()
   time = (MPI.Wtime() - p_start)
   avgT = time / (T/dt)
 
+  # print if rank 0 only
   if (rank == 0):
     print "Time: %f" % time
     print "Time/iteration: %f" % avgT
