@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib.image as img
 
 # Image files
-in_file_name  = "Harvard_Tiny.png"
-out_file_name = "Harvard_Sharpened_CPU.png"
+in_file_name  = "Harvard_Small.png"
+out_file_name = "Harvard_Sharpened_CPU_Small.png"
 # Sharpening constant
 EPSILON    = np.float32(.005)
 
