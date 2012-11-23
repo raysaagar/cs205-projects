@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+# Note: Commented commands (i.e. #$ ...) are intentional!
+# Do not uncomment, qsub will use these as configurations
+#
+# Shell environment
+#$ -S /bin/bash
+# Use the current directory as the working directory
+#$ -cwd
+# Name of the output file
+#$ -o cs205hw.o$JOB_ID
+# Merge output and error messages into single file
+#$ -j y
+#
+# Resonance queue system to use (if >5min job, use gpu.q)
+#$ -q gpu-short.q
+# The number of processes to launch [1-12] 
+# (2 GPUs/node and 6 nodes in gpu.q)
+# Parallel environment ortegpu_reserve set to $round_robin
+#$ -pe ortegpu_reserve 8
+
+# Import environment and profile
+. /etc/profile
+module load courses/cs205/2012
+
+# Launch the job with the above number of processes
+mpirun --mca btl_tcp_if_include eth0 -n $NSLOTS python P1B.py hp6_clip01.avi p1b_test.avi
