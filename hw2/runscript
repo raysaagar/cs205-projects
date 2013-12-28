@@ -1,0 +1,23 @@
+#!/bin/bash 
+#
+# Use the current directory as the working directory
+#$ -cwd
+# Merge output and error messages into single file
+#$ -j y
+# Name of the output file
+#$ -N cs205hw
+# Shell environment
+#$ -S /bin/bash
+# Resonance queue system to use
+# If more than 5min job, use -q gpu.q
+#$ -q gpu-short.q
+# Needed to execute parallel jobs
+# The number of processes to launch [1-64]
+#$ -pe orte 1
+
+# Import environment and profile
+. /etc/profile
+module load courses/cs205/2012
+
+# Launch the job (Change the python file)
+mpirun -n $NSLOTS python P4/P4b.py

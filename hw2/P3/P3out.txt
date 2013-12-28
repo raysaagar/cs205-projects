@@ -1,0 +1,57 @@
+p , 1
+Serial Time, 9.235659 secs
+Parallel Time, 9.666667 secs
+Parallel Result , 3144543.496082
+Serial Result   , 3144543.496082
+Relative Error  , 0.000000e+00
+
+p , 2
+Serial Time, 9.087448 secs
+Parallel Time, 5.140066 secs
+Parallel Result , 3144543.496083
+Serial Result   , 3144543.496082
+Relative Error  , 2.932093e-13
+
+p , 4
+Serial Time, 9.384635 secs
+Parallel Time, 3.131687 secs
+Parallel Result , 3144543.496083
+Serial Result   , 3144543.496082
+Relative Error  , 2.443411e-13
+
+p , 6
+Serial Time, 9.409284 secs
+Parallel Time, 2.538154 secs
+Parallel Result , 3144543.496083
+Serial Result   , 3144543.496082
+Relative Error  , 2.622594e-13
+
+p , 8
+Serial Time, 9.654002 secs
+Parallel Time, 3.237176 secs
+Parallel Result , 3144543.496083
+Serial Result   , 3144543.496082
+Relative Error  , 2.677386e-13
+
+p , 12
+Serial Time, 9.273635 secs
+Parallel Time, 2.766433 secs
+Parallel Result , 3144543.496083
+Serial Result   , 3144543.496082
+Relative Error  , 2.638884e-13
+
+p , 16
+Serial Time, 9.058147 secs
+Parallel Time, 5.747795 secs
+Parallel Result , 3144543.496083
+Serial Result   , 3144543.496082
+Relative Error  , 2.664058e-13
+
+p , 5
+Serial Time, 9.267562 secs
+Parallel Time, 2.670204 secs
+Parallel Result , 3144542.993819
+Serial Result   , 3144543.496082
+Relative Error  , 1.597252e-07
+***LARGE ERROR - POSSIBLE FAILURE!***
+                                                                              
